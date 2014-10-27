@@ -45,11 +45,15 @@ module.exports = function(grunt) {
         return n();
       }
 
-      var compiled = [];
+      var compiled = [],
+        sourcemaps = [];
       async.concatSeries(srcFiles, function(file, next) {
-        compileStylus(file, options, function(css, err) {
+        compileStylus(file, options, function(css, map, err) {
           if (!err) {
             compiled.push(css);
+            if(map) {
+              sourcemaps.push(map);
+            }
             next(null);
           } else {
             n(false);
@@ -61,6 +65,15 @@ module.exports = function(grunt) {
         } else {
           grunt.file.write(destFile, banner + compiled.join(grunt.util.normalizelf(grunt.util.linefeed)));
           grunt.log.writeln('File ' + chalk.cyan(destFile) + ' created.');
+          if(options.sourcemap && options.sourcemap.comment) {
+
+            if(sourcemaps.length > 1) {
+              grunt.fail.warn('Must use 1:1 compile when using sourcemaps');
+            }
+
+            grunt.file.write(destFile + '.map', sourcemaps.join(grunt.util.normalizelf(grunt.util.linefeed)));
+            grunt.log.writeln('File ' + chalk.cyan(destFile + '.map') + ' created.');
+          }
         }
         n();
       });
@@ -142,9 +155,14 @@ module.exports = function(grunt) {
         grunt.log.error(err);
         grunt.fail.warn('Stylus failed to compile.');
 
-        callback(css, true);
+        callback(css, null, true);
       } else {
-        callback(css, null);
+        if(options.sourcemap) {
+          callback(css, JSON.stringify(s.sourcemap), null);
+        } else {
+          callback(css, null);
+        }
+
       }
     });
   };
