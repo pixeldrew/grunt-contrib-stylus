@@ -11,9 +11,10 @@
 module.exports = function(grunt) {
   var async = require('async');
   var _ = require('lodash');
+  var sourceMapUrl = require("source-map-url");
 
   grunt.registerMultiTask('stylus', 'Compile Stylus files into CSS', function() {
-     var done = this.async();
+    var done = this.async();
     var path = require('path');
     var chalk = require('chalk');
 
@@ -63,8 +64,6 @@ module.exports = function(grunt) {
         if (compiled.length < 1) {
           grunt.log.warn('Destination not written because compiled files were empty.');
         } else {
-          grunt.file.write(destFile, banner + compiled.join(grunt.util.normalizelf(grunt.util.linefeed)));
-          grunt.log.writeln('File ' + chalk.cyan(destFile) + ' created.');
           if(options.sourcemap && options.sourcemap.comment) {
 
             if(sourcemaps.length > 1) {
@@ -73,7 +72,13 @@ module.exports = function(grunt) {
 
             grunt.file.write(destFile + '.map', sourcemaps.join(grunt.util.normalizelf(grunt.util.linefeed)));
             grunt.log.writeln('File ' + chalk.cyan(destFile + '.map') + ' created.');
+
+            compiled[0] = sourceMapUrl.removeFrom(compiled[0]);
+
+            compiled[0] += '/*# sourceMappingURL=' + destFile.split('/').pop() + '.map */';
           }
+          grunt.log.writeln('File ' + chalk.cyan(destFile) + ' created.');
+          grunt.file.write(destFile, banner + compiled.join(grunt.util.normalizelf(grunt.util.linefeed)));
         }
         n();
       });
